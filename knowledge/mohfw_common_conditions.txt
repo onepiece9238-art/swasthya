@@ -1,0 +1,94 @@
+FEVER IN CHILDREN — MOHFW STG
+Temperature above 37.5°C is fever. Above 39°C is high fever.
+Treatment: Paracetamol 15mg/kg every 4-6 hours. Tepid sponging.
+Danger signs requiring URGENT REFERRAL: fever more than 5 days, neck stiffness,
+convulsions, unable to drink, persistent vomiting, bulging fontanelle in infants.
+Malaria: do RDT test for fever in endemic areas. If positive treat per NVBDCP protocol.
+
+DIARRHOEA AND DEHYDRATION — MOHFW STG
+ORS: dissolve 1 sachet in 1 litre clean water. Give 200ml after each loose stool.
+Zinc: 20mg daily for 14 days for children above 6 months.
+Continue breastfeeding. Continue feeding.
+URGENT REFERRAL signs: sunken eyes, no urine for 6 hours, blood in stool,
+unable to drink, convulsions, high fever.
+
+ACUTE RESPIRATORY INFECTION — MOHFW STG
+Assess respiratory rate: fast breathing above 60 per min for 0-2 months,
+above 50 per min for 2-12 months, above 40 per min for 1-5 years.
+Mild: home treatment, paracetamol, fluids, monitor.
+Severe (chest indrawing, stridor, cyanosis): URGENT REFERRAL immediately.
+Pneumonia: Amoxicillin 40mg/kg/day in 2 divided doses for 5 days.
+
+ANTENATAL CARE — MOHFW MCH PROTOCOL
+Minimum 4 ANC visits: first before 12 weeks, second at 14-26 weeks,
+third at 28-34 weeks, fourth at 36 weeks onwards.
+Iron Folic Acid: 1 tablet daily from first trimester.
+TT immunisation: TT1 early pregnancy, TT2 four weeks after TT1.
+Danger signs: vaginal bleeding, severe headache, blurred vision,
+swelling of face and hands, reduced foetal movements — REFERRAL NEEDED immediately.
+
+HYPERTENSION — MOHFW STG
+Normal: below 120/80 mmHg.
+Hypertension: 140/90 mmHg or above on two readings.
+First line: lifestyle modification — low salt diet, exercise, no tobacco.
+Drug treatment: Amlodipine 5mg once daily. If not controlled add Enalapril 5mg.
+URGENT REFERRAL: BP above 180/110, chest pain, breathlessness, neurological signs.
+
+TYPE 2 DIABETES — MOHFW STG
+Diagnosis: fasting glucose above 126 mg/dL on two occasions.
+First line: Metformin 500mg twice daily with meals, increase to 1g BD if needed.
+Monitor: fasting glucose monthly, HbA1c every 3 months.
+Hypoglycaemia (glucose below 70): give sugar or glucose immediately,
+if unconscious REFERRAL NEEDED urgent.
+Danger signs: non-healing wounds, vision changes, chest pain.
+
+TUBERCULOSIS — NIKSHAY RNTCP PROTOCOL
+Presumptive TB: cough more than 2 weeks, fever, weight loss, night sweats.
+Action: sputum CBNAAT test, chest X-ray. Do NOT start treatment without confirmation.
+DOTS: directly observed treatment short course.
+Notify all TB cases on Nikshay portal.
+Drug-sensitive TB: 2HRZE/4HR regimen under DOTS.
+Side effects: yellow urine from rifampicin is normal. Jaundice means stop drugs and REFERRAL.
+
+MALARIA — NVBDCP PROTOCOL
+RDT test for all fever cases in endemic areas.
+Plasmodium vivax: Chloroquine 25mg/kg over 3 days plus Primaquine 0.25mg/kg for 14 days.
+Plasmodium falciparum: Artemisinin combination therapy ACT — Artesunate plus SP.
+Severe malaria (unconscious, convulsions, high parasitaemia): REFERRAL NEEDED immediately.
+Pregnant women: do not give Primaquine.
+
+IMMUNISATION — UNIVERSAL IMMUNISATION PROGRAMME
+Birth: BCG, OPV0, Hepatitis B birth dose.
+6 weeks: OPV1, Pentavalent1, Rotavirus1, PCV1, fIPV1.
+10 weeks: OPV2, Pentavalent2, Rotavirus2.
+14 weeks: OPV3, Pentavalent3, Rotavirus3, PCV2, fIPV2.
+9 months: MR1, JE1 in endemic districts, Vitamin A 1 lakh IU.
+16-24 months: DPT booster, OPV booster, MR2, JE2, Vitamin A 2 lakh IU.
+Cold chain: vaccines must be stored 2-8 degrees C. VVM must be valid before use.
+
+ESSENTIAL MEDICINES — PHC LEVEL
+Analgesic: Paracetamol 500mg tab, Ibuprofen 400mg tab.
+Antibiotic: Amoxicillin 500mg, Cotrimoxazole 480mg, Metronidazole 400mg.
+Antimalarial: Chloroquine, Primaquine, ACT Artesunate plus SP.
+ORS and Zinc tablets.
+Iron Folic Acid, Vitamin A capsules, Vitamin D.
+Antihypertensive: Amlodipine 5mg, Enalapril 5mg.
+Antidiabetic: Metformin 500mg.
+Antiepileptic: Phenobarbitone, Phenytoin.
+Oxytocin injection for PPH prevention.
+Magnesium Sulphate for eclampsia at referral centre.
+
+SNAKE BITE — MOHFW PROTOCOL
+Keep patient calm and immobile. Immobilise bitten limb with splint.
+Do NOT cut, suck, or tourniquet the bite site.
+Transport immediately to facility with antivenom — REFERRAL NEEDED.
+Signs of envenomation: swelling spreading, bleeding from gums, drooping eyelids, difficulty breathing.
+Antivenom: Polyvalent Anti Snake Venom IV, start with 10 vials.
+
+NEONATAL CARE — MOHFW PROTOCOL
+Danger signs in newborn: not feeding, high or low temperature, fast breathing,
+chest indrawing, jaundice in first 24 hours, convulsions — REFERRAL NEEDED immediately.
+Kangaroo Mother Care for low birth weight babies below 2kg.
+Exclusive breastfeeding for first 6 months.
+Cord care: keep dry and clean, do not apply anything.
+Vitamin K injection 1mg IM at birth.

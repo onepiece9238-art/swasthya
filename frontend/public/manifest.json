@@ -1,0 +1,13 @@
+{
+  "name": "Swasthya Sahayak",
+  "short_name": "Swasthya",
+  "description": "Offline AI health assistant for PHC/CHC",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0F6E56",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
