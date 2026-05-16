@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 from sentence_transformers import SentenceTransformer
 import chromadb
 import sqlite3
@@ -37,7 +38,7 @@ app.add_middleware(
 # ── Schemas ───────────────────────────────────────────────────────────────────
 class QueryRequest(BaseModel):
     query: str
-    patient_id: str | None = None
+    patient_id: Optional[str] = None
     language: str = "en"
 
 class PatientIn(BaseModel):
@@ -50,11 +51,11 @@ class PatientIn(BaseModel):
 
 class VitalsIn(BaseModel):
     patient_id: str
-    bp_systolic: int | None = None
-    bp_diastolic: int | None = None
-    temperature: float | None = None
-    weight: float | None = None
-    spo2: int | None = None
+    bp_systolic: Optional[int] = None
+    bp_diastolic: Optional[int] = None
+    temperature: Optional[float] = None
+    weight: Optional[float] = None
+    spo2: Optional[int] = None
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def get_db():
@@ -158,21 +159,25 @@ async def ask(req: QueryRequest):
         {"role": "user",   "content": user_message},
     ]
 
+    # Manual prompt formatting for Gemma
+    prompt = f"<start_of_turn>user\n{build_system_prompt(req.language)}\n\n{user_message}<end_of_turn>\n<start_of_turn>model\n"
+    
     full_response = []
 
     async def generate():
         async with httpx.AsyncClient(timeout=120) as client:
             async with client.stream(
                 "POST",
-                f"{LLAMA_SERVER}/v1/chat/completions",
+                f"{LLAMA_SERVER}/completion",
                 json={
-                    "messages":       messages,
-                    "max_tokens":     200,
+                    "prompt":         prompt,
+                    "n_predict":      200,
                     "stream":         True,
                     "temperature":    1.0,
                     "top_p":          0.95,
                     "top_k":          64,
                     "repeat_penalty": 1.1,
+                    "stop": ["<end_of_turn>", "user", "model"]
                 },
             ) as response:
                 async for line in response.aiter_lines():
@@ -182,15 +187,16 @@ async def ask(req: QueryRequest):
                         break
                     try:
                         data  = json.loads(line[6:])
-                        delta = data["choices"][0]["delta"].get("content", "")
-                        if not delta:
+                        token = data.get("content", "")
+                        if not token:
                             continue
+                        
                         # Strip artifact tokens mid-stream
-                        delta = delta.replace("<end_of_turn>", "") \
+                        token = token.replace("<end_of_turn>", "") \
                                      .replace("<start_of_turn>", "")
-                        if delta:
-                            full_response.append(delta)
-                            yield f"data: {json.dumps({'token': delta})}\n\n"
+                        if token:
+                            full_response.append(token)
+                            yield f"data: {json.dumps({'token': token})}\n\n"
                     except Exception:
                         continue
 
