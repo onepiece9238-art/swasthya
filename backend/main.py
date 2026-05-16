@@ -165,7 +165,7 @@ async def ask(req: QueryRequest):
     full_response = []
 
     async def generate():
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=None) as client:
             async with client.stream(
                 "POST",
                 f"{LLAMA_SERVER}/completion",
