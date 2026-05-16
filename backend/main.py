@@ -1,14 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from sentence_transformers import SentenceTransformer
+from transformers import pipeline
 import chromadb
 import sqlite3
 import json
 import re
 import httpx
+import os
+import uuid
 
 # ── Config ──────────────────────────────────────────────────────────────────
 LLAMA_SERVER = "http://localhost:8080"
@@ -20,6 +23,10 @@ TOP_K_CHUNKS = 3
 print("Loading embedding model...")
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 print("Embedder ready.")
+
+print("Loading Whisper model...")
+asr_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-tiny")
+print("Whisper model ready.")
 
 # ── ChromaDB ─────────────────────────────────────────────────────────────────
 chroma     = chromadb.PersistentClient(path=CHROMA_PATH)
@@ -40,6 +47,7 @@ class QueryRequest(BaseModel):
     query: str
     patient_id: Optional[str] = None
     language: str = "en"
+    visit_type: str = "new"
 
 class PatientIn(BaseModel):
     id: str
@@ -56,6 +64,13 @@ class VitalsIn(BaseModel):
     temperature: Optional[float] = None
     weight: Optional[float] = None
     spo2: Optional[int] = None
+
+class DrugIn(BaseModel):
+    name: str
+    category: str
+    dosage: str
+    in_stock: int = 1
+    expiry_date: Optional[str] = None
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def get_db():
@@ -118,19 +133,20 @@ def clean_response(text: str) -> str:
     # Strip llama artifact tokens
     text = text.replace("<end_of_turn>", "")
     text = text.replace("<start_of_turn>", "")
+    text = text.replace("</start_of_turn>", "")
     text = text.strip()
     return text
 
 def check_referral(response: str) -> bool:
     return bool(re.search(r'\[REFERRAL NEEDED\]', response, re.IGNORECASE))
 
-def save_consultation(patient_id, query, response, referral_flag, language):
+def save_consultation(patient_id, query, response, referral_flag, language, visit_type="new"):
     conn = get_db()
     conn.execute(
         """INSERT INTO consultations
-           (patient_id, query, ai_response, referral_flag, language)
-           VALUES (?, ?, ?, ?, ?)""",
-        (patient_id, query, response, int(referral_flag), language)
+           (patient_id, query, ai_response, referral_flag, language, visit_type)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (patient_id, query, response, int(referral_flag), language, visit_type)
     )
     conn.commit()
     conn.close()
@@ -201,13 +217,71 @@ async def ask(req: QueryRequest):
                         continue
 
         complete = clean_response("".join(full_response))
-        flag     = check_referral(complete)
+        flag     = check_referral(complete) or req.visit_type == "referral"
         save_consultation(
-            req.patient_id, req.query, complete, flag, req.language
+            req.patient_id, req.query, complete, flag, req.language, req.visit_type
         )
         yield f"data: {json.dumps({'done': True, 'referral': flag})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/api/patients/voice")
+async def register_voice(file: UploadFile = File(...)):
+    # Save uploaded file temporarily
+    file_path = f"/tmp/{uuid.uuid4()}_{file.filename}"
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+        
+    try:
+        # Transcribe using Whisper
+        transcription = asr_pipeline(file_path)["text"]
+        
+        # Build prompt for LLM parsing
+        parsing_prompt = (
+            "Extract patient details from the following transcript. "
+            "Return ONLY a valid JSON object with the following keys: "
+            "name, age (integer), sex, village, contact, visit_type (must be 'new', 'recheckup', or 'referral'), symptoms. "
+            "If a field is unknown, use null."
+            f"\\n\\nTranscript: {transcription}"
+        )
+        
+        # Call Gemma 4 server
+        prompt = f"<start_of_turn>user\\n{parsing_prompt}<end_of_turn>\\n<start_of_turn>model\\n"
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{LLAMA_SERVER}/completion",
+                json={
+                    "prompt": prompt,
+                    "n_predict": 300,
+                    "temperature": 0.1,
+                    "stop": ["<end_of_turn>"]
+                }
+            )
+            data = response.json()
+            parsed_text = clean_response(data.get("content", "")).strip()
+            
+            # Clean JSON formatting if model wraps it in markdown
+            if parsed_text.startswith("```json"):
+                parsed_text = parsed_text[7:]
+            if parsed_text.endswith("```"):
+                parsed_text = parsed_text[:-3]
+            parsed_text = parsed_text.strip()
+            
+            try:
+                parsed_json = json.loads(parsed_text)
+            except json.JSONDecodeError:
+                # Fallback if parsing fails
+                parsed_json = {
+                    "error": "Failed to parse JSON from LLM",
+                    "raw_transcription": transcription,
+                    "llm_output": parsed_text
+                }
+                
+        return {"transcription": transcription, "parsed_data": parsed_json}
+        
+    finally:
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
 @app.get("/api/patients")
 def list_patients(search: str = ""):
@@ -250,6 +324,45 @@ def add_vitals(v: VitalsIn):
     conn.commit()
     conn.close()
     return {"status": "saved"}
+
+@app.post("/api/drugs")
+async def add_drug(d: DrugIn):
+    # Call Gemma 4 for importance
+    eval_prompt = (
+        f"Evaluate the importance of the drug {d.name} ({d.category}) for a "
+        "Primary Health Centre (PHC) or Community Health Centre (CHC) in India. "
+        "Keep it brief, under 2 sentences, and state if it is an essential medicine or critical for emergencies."
+    )
+    prompt = f"<start_of_turn>user\\n{eval_prompt}<end_of_turn>\\n<start_of_turn>model\\n"
+    
+    importance_flag = ""
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{LLAMA_SERVER}/completion",
+                json={
+                    "prompt": prompt,
+                    "n_predict": 100,
+                    "temperature": 0.3,
+                    "stop": ["<end_of_turn>"]
+                }
+            )
+            data = response.json()
+            importance_flag = clean_response(data.get("content", "")).strip()
+    except Exception as e:
+        importance_flag = f"Evaluation failed: {str(e)}"
+        
+    conn = get_db()
+    conn.execute(
+        """INSERT INTO drugs
+           (name, category, dosage, in_stock, expiry_date, importance_flag)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (d.name, d.category, d.dosage, d.in_stock, d.expiry_date, importance_flag)
+    )
+    conn.commit()
+    conn.close()
+    
+    return {"status": "created", "name": d.name, "importance_flag": importance_flag}
 
 @app.get("/api/drugs")
 def list_drugs(search: str = ""):

@@ -35,7 +35,16 @@ for file_path in all_files:
     if file_path.endswith(".pdf"):
         from pypdf import PdfReader
         reader = PdfReader(file_path)
-        text   = "\n".join(page.extract_text() or "" for page in reader.pages)
+        text_parts = []
+        for page in reader.pages:
+            try:
+                extracted = page.extract_text()
+                if extracted:
+                    text_parts.append(extracted)
+            except Exception as e:
+                print(f"    Skipped a page due to parsing error: {e}")
+                continue
+        text = "\n".join(text_parts)
     else:
         text = load_text(file_path)
 

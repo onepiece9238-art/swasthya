@@ -9,3 +9,6 @@ pypdf
 python-multipart
 pydantic
 aiofiles
+transformers
+librosa
+soundfile
