@@ -3,6 +3,7 @@ import Chat     from "./components/Chat";
 import Drugs    from "./components/Drugs";
 import Patients from "./components/Patients";
 import Stats    from "./components/Stats";
+import { translations } from "./i18n";
 import "./App.css";
 
 const LANGS = {
@@ -13,12 +14,13 @@ export default function App() {
   const [tab,  setTab]  = useState("chat");
   const [lang, setLang] = useState("en");
   const [showLang, setShowLang] = useState(false);
+  const t = translations[lang] || translations.en;
 
   const tabs = [
-    { id: "chat",     icon: "ti-stethoscope", label: "Ask AI"    },
-    { id: "drugs",    icon: "ti-pill",         label: "Drugs"     },
-    { id: "patients", icon: "ti-users",        label: "Patients"  },
-    { id: "stats",    icon: "ti-chart-bar",    label: "Stats"     },
+    { id: "chat",     icon: "ti-stethoscope", label: t.tabChat },
+    { id: "drugs",    icon: "ti-pill",         label: t.tabDrugs },
+    { id: "patients", icon: "ti-users",        label: t.tabPatients },
+    { id: "stats",    icon: "ti-chart-bar",    label: t.tabStats },
   ];
 
   return (
@@ -27,13 +29,13 @@ export default function App() {
         <div className="topbar-left">
           <div className="logo"><i className="ti ti-heart-plus" /></div>
           <div>
-            <div className="brand-name">स्वास्थ्य सहायक</div>
-            <div className="brand-sub">Swasthya Sahayak · PHC AI</div>
+            <div className="brand-name">{t.appName}</div>
+            <div className="brand-sub">{t.appName} · {t.appSub}</div>
           </div>
         </div>
         <div className="topbar-right">
           <div className="offline-badge">
-            <i className="ti ti-wifi-off" /> Offline
+            <i className="ti ti-wifi-off" /> {t.offline}
           </div>
           <div className="lang-btn" onClick={() => setShowLang(v => !v)}>
             <i className="ti ti-language" /> {LANGS[lang]}
@@ -69,9 +71,9 @@ export default function App() {
 
       <main className="body">
         {tab === "chat"     && <Chat lang={lang} />}
-        {tab === "drugs"    && <Drugs />}
+        {tab === "drugs"    && <Drugs lang={lang} />}
         {tab === "patients" && <Patients lang={lang} />}
-        {tab === "stats"    && <Stats />}
+        {tab === "stats"    && <Stats lang={lang} />}
       </main>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { streamAsk } from "../api";
+import { translations } from "../i18n";
 
 const QUICK = [
   "Child fever 38.5°C and vomiting",
@@ -10,9 +11,11 @@ const QUICK = [
 ];
 
 export default function Chat({ lang }) {
+  const t = translations[lang] || translations.en;
+  
   const [messages, setMessages] = useState([{
     role: "ai",
-    text: "Namaste! I am Swasthya Sahayak. Ask me any clinical question.",
+    text: t.chatGreeting,
     referral: false,
   }]);
   const [input,   setInput]   = useState("");
@@ -82,7 +85,7 @@ export default function Chat({ lang }) {
             {m.referral && (
               <div className="referral-banner">
                 <i className="ti ti-alert-triangle" />
-                Referral needed — send to CHC / district hospital
+                {t.referralBanner}
               </div>
             )}
           </div>
@@ -101,7 +104,7 @@ export default function Chat({ lang }) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && send(input)}
-          placeholder="Ask about symptoms, treatment, dosage..."
+          placeholder={t.chatPlaceholder}
         />
         <button className="send-btn" onClick={() => send(input)} disabled={loading}>
           <i className="ti ti-send" />

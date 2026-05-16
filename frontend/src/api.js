@@ -51,3 +51,19 @@ export const getStats     = () =>
 
 export const getConsultations = (patient_id) =>
   fetch(`${BASE}/consultations/${patient_id}`).then(r => r.json());
+
+export const addPatientVoice = (audioBlob) => {
+  const formData = new FormData();
+  formData.append("file", audioBlob, "audio.webm");
+  return fetch(`${BASE}/patients/voice`, {
+    method: "POST",
+    body: formData,
+  }).then(r => r.json());
+};
+
+export const addDrug = (data) =>
+  fetch(`${BASE}/drugs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).then(r => r.json());
