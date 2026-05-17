@@ -8,7 +8,7 @@ export default function Patients({ lang }) {
   const [search,   setSearch]   = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    id: "", name: "", age: "", sex: "F", village: "", contact: ""
+    id: "", name: "", age: "", sex: "F", village: "", contact: "", symptoms: ""
   });
 
   const [isRecording, setIsRecording] = useState(false);
@@ -22,7 +22,7 @@ export default function Patients({ lang }) {
     if (!form.id || !form.name) return;
     await addPatient({ ...form, age: parseInt(form.age) });
     setShowForm(false);
-    setForm({ id: "", name: "", age: "", sex: "F", village: "", contact: "" });
+    setForm({ id: "", name: "", age: "", sex: "F", village: "", contact: "", symptoms: "" });
     getPatients("").then(setPatients);
   }
 
@@ -46,12 +46,13 @@ export default function Patients({ lang }) {
           if (res.parsed_data) {
             setForm(f => ({
               ...f,
-              name: res.parsed_data.name || f.name,
-              age: res.parsed_data.age || f.age,
-              sex: res.parsed_data.sex?.toLowerCase().startsWith('m') ? "M" : (res.parsed_data.sex?.toLowerCase().startsWith('f') ? "F" : f.sex),
+              name:    res.parsed_data.name    || f.name,
+              age:     res.parsed_data.age     || f.age,
+              sex:     res.parsed_data.sex?.toLowerCase().startsWith('m') ? "M" : (res.parsed_data.sex?.toLowerCase().startsWith('f') ? "F" : f.sex),
               village: res.parsed_data.village || f.village,
               contact: res.parsed_data.contact || f.contact,
-              id: res.parsed_data.id || f.id || `PHC-${Math.floor(1000 + Math.random() * 9000)}`
+              symptoms: res.parsed_data.symptoms || f.symptoms,
+              id:      res.parsed_data.id || f.id || `PHC-${Math.floor(1000 + Math.random() * 9000)}`
             }));
             setShowForm(true);
           }
@@ -125,6 +126,8 @@ export default function Patients({ lang }) {
             onChange={e => setForm(f => ({ ...f, village: e.target.value }))} />
           <input placeholder="Contact number" value={form.contact}
             onChange={e => setForm(f => ({ ...f, contact: e.target.value }))} />
+          <input placeholder="Symptoms (e.g. fever, cough, vomiting)" value={form.symptoms}
+            onChange={e => setForm(f => ({ ...f, symptoms: e.target.value }))} />
           <button className="btn-primary" onClick={submit}>{t.savePatient}</button>
         </div>
       )}

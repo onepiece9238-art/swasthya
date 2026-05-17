@@ -56,6 +56,7 @@ class PatientIn(BaseModel):
     sex: str
     village: str
     contact: str
+    symptoms: Optional[str] = None
 
 class VitalsIn(BaseModel):
     patient_id: str
@@ -71,6 +72,26 @@ class DrugIn(BaseModel):
     dosage: str
     in_stock: int = 1
     expiry_date: Optional[str] = None
+
+# ── DB Migration ─────────────────────────────────────────────────────────────
+def migrate_db():
+    """Apply non-destructive schema additions on startup."""
+    conn = sqlite3.connect(DB_PATH)
+    migrations = [
+        "ALTER TABLE patients ADD COLUMN symptoms TEXT",
+        "ALTER TABLE consultations ADD COLUMN symptoms TEXT",
+        "ALTER TABLE consultations ADD COLUMN village TEXT",
+    ]
+    for sql in migrations:
+        try:
+            conn.execute(sql)
+        except Exception:
+            pass  # Column already exists
+    conn.commit()
+    conn.close()
+    print("DB migration done.")
+
+migrate_db()
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def get_db():
@@ -140,13 +161,18 @@ def clean_response(text: str) -> str:
 def check_referral(response: str) -> bool:
     return bool(re.search(r'\[REFERRAL NEEDED\]', response, re.IGNORECASE))
 
-def save_consultation(patient_id, query, response, referral_flag, language, visit_type="new"):
+def save_consultation(patient_id, query, response, referral_flag, language, visit_type="new", symptoms=None, village=None):
     conn = get_db()
+    # Fetch village from patient record if not provided
+    if not village and patient_id:
+        row = conn.execute("SELECT village FROM patients WHERE id = ?", (patient_id,)).fetchone()
+        if row:
+            village = row["village"]
     conn.execute(
         """INSERT INTO consultations
-           (patient_id, query, ai_response, referral_flag, language, visit_type)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        (patient_id, query, response, int(referral_flag), language, visit_type)
+           (patient_id, query, ai_response, referral_flag, language, visit_type, symptoms, village)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (patient_id, query, response, int(referral_flag), language, visit_type, symptoms, village)
     )
     conn.commit()
     conn.close()
@@ -303,9 +329,9 @@ def add_patient(p: PatientIn):
     conn = get_db()
     conn.execute(
         """INSERT OR REPLACE INTO patients
-           (id, name, age, sex, village, contact)
-           VALUES (?,?,?,?,?,?)""",
-        (p.id, p.name, p.age, p.sex, p.village, p.contact)
+           (id, name, age, sex, village, contact, symptoms)
+           VALUES (?,?,?,?,?,?,?)""",
+        (p.id, p.name, p.age, p.sex, p.village, p.contact, p.symptoms)
     )
     conn.commit()
     conn.close()
@@ -411,3 +437,226 @@ def stats():
     }
     conn.close()
     return data
+
+# ── Insight: Symptom Cluster / Epidemic Early Warning ─────────────────────────
+CLUSTER_THRESHOLD = 5   # min patients
+CLUSTER_WINDOW_H  = 72  # hours
+
+SYMPTOM_KEYWORDS = [
+    "fever", "diarrhoea", "diarrhea", "vomiting", "cough", "rash",
+    "jaundice", "malaria", "dengue", "cholera", "respiratory", "convulsion",
+]
+
+@app.get("/api/insights/clusters")
+async def get_clusters():
+    conn = get_db()
+    rows = conn.execute(
+        """SELECT village, symptoms, COUNT(*) as cnt
+           FROM consultations
+           WHERE village IS NOT NULL
+             AND symptoms IS NOT NULL
+             AND created_at >= datetime('now', ? || ' hours')
+           GROUP BY village, symptoms""",
+        (f"-{CLUSTER_WINDOW_H}",)
+    ).fetchall()
+    conn.close()
+
+    # Also scan query text for symptom keywords if dedicated symptoms column is sparse
+    conn = get_db()
+    query_rows = conn.execute(
+        """SELECT village, query, COUNT(*) as cnt
+           FROM consultations
+           WHERE village IS NOT NULL
+             AND created_at >= datetime('now', ? || ' hours')
+           GROUP BY village""",
+        (f"-{CLUSTER_WINDOW_H}",)
+    ).fetchall()
+    conn.close()
+
+    # Build cluster candidates from query text
+    clusters = {}
+    for row in list(rows) + list(query_rows):
+        row = dict(row)  # convert sqlite3.Row → dict so .get() works
+        village = row["village"]
+        text = (row.get("symptoms") or row.get("query") or "").lower()
+        count = row["cnt"]
+        for kw in SYMPTOM_KEYWORDS:
+            if kw in text and count >= CLUSTER_THRESHOLD:
+                key = f"{village}|{kw}"
+                if key not in clusters or clusters[key]["count"] < count:
+                    clusters[key] = {"village": village, "symptom": kw, "count": count}
+
+    if not clusters:
+        return {"alerts": [], "window_hours": CLUSTER_WINDOW_H}
+
+    # Ask Gemma to generate a clinical recommendation for each cluster
+    alerts = []
+    for cluster in clusters.values():
+        eval_prompt = (
+            f"You are an epidemiologist advising an Indian PHC doctor. "
+            f"There have been {cluster['count']} patients from {cluster['village']} village "
+            f"presenting with {cluster['symptom']} symptoms in the last {CLUSTER_WINDOW_H} hours. "
+            f"This may indicate an outbreak. In 2-3 sentences: identify the most likely disease "
+            f"(consider Indian context: dengue, malaria, cholera, typhoid, etc.), "
+            f"and recommend one specific MOHFW action step the PHC doctor should take today."
+        )
+        prompt = f"<start_of_turn>user\n{eval_prompt}<end_of_turn>\n<start_of_turn>model\n"
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    f"{LLAMA_SERVER}/completion",
+                    json={"prompt": prompt, "n_predict": 150, "temperature": 0.5,
+                          "stop": ["<end_of_turn>"]}
+                )
+                ai_rec = clean_response(resp.json().get("content", "")).strip()
+        except Exception as e:
+            ai_rec = f"Cluster detected. Manual review recommended."
+
+        severity = "HIGH" if cluster["count"] >= CLUSTER_THRESHOLD * 2 else "MEDIUM"
+        alerts.append({
+            "severity": severity,
+            "village": cluster["village"],
+            "symptom": cluster["symptom"],
+            "count": cluster["count"],
+            "window_hours": CLUSTER_WINDOW_H,
+            "ai_recommendation": ai_rec,
+        })
+
+    alerts.sort(key=lambda x: x["count"], reverse=True)
+    return {"alerts": alerts, "window_hours": CLUSTER_WINDOW_H}
+
+
+# ── Insight: Weekly / Monthly Digest (streaming) ──────────────────────────────
+@app.get("/api/insights/digest")
+async def get_digest(period: str = "week"):
+    days = 7 if period == "week" else 30
+    conn = get_db()
+
+    # Aggregate raw stats from DB
+    top_symptoms = conn.execute(
+        """SELECT symptoms, COUNT(*) as cnt FROM consultations
+           WHERE symptoms IS NOT NULL
+             AND created_at >= date('now', ? || ' days')
+           GROUP BY symptoms ORDER BY cnt DESC LIMIT 10""",
+        (f"-{days}",)
+    ).fetchall()
+
+    village_burden = conn.execute(
+        """SELECT village, COUNT(*) as cnt FROM consultations
+           WHERE village IS NOT NULL
+             AND created_at >= date('now', ? || ' days')
+           GROUP BY village ORDER BY cnt DESC LIMIT 10""",
+        (f"-{days}",)
+    ).fetchall()
+
+    referral_now = conn.execute(
+        """SELECT COUNT(*) FROM consultations
+           WHERE referral_flag=1
+             AND created_at >= date('now', ? || ' days')""",
+        (f"-{days}",)
+    ).fetchone()[0]
+
+    total_now = conn.execute(
+        """SELECT COUNT(*) FROM consultations
+           WHERE created_at >= date('now', ? || ' days')""",
+        (f"-{days}",)
+    ).fetchone()[0]
+
+    referral_prev = conn.execute(
+        """SELECT COUNT(*) FROM consultations
+           WHERE referral_flag=1
+             AND created_at >= date('now', ? || ' days')
+             AND created_at <  date('now', ? || ' days')""",
+        (f"-{days * 2}", f"-{days}")
+    ).fetchone()[0]
+
+    expiring_drugs = conn.execute(
+        """SELECT name, expiry_date FROM drugs
+           WHERE expiry_date IS NOT NULL
+             AND expiry_date <= date('now', '+30 days')
+             AND expiry_date >= date('now')
+           ORDER BY expiry_date""",
+    ).fetchall()
+
+    recheckup_due = conn.execute(
+        """SELECT COUNT(DISTINCT patient_id) FROM consultations
+           WHERE visit_type = 'recheckup'
+             AND created_at >= date('now', ? || ' days')""",
+        (f"-{days}",)
+    ).fetchone()[0]
+
+    conn.close()
+
+    # Format data into a structured summary for the LLM
+    symptom_list = ", ".join(
+        [f"{r['symptoms']} ({r['cnt']})" for r in top_symptoms]
+    ) or "No symptoms recorded"
+
+    village_list = ", ".join(
+        [f"{r['village']} ({r['cnt']} visits)" for r in village_burden]
+    ) or "No village data"
+
+    referral_rate_now  = round((referral_now / total_now * 100), 1) if total_now else 0
+    referral_rate_prev = round((referral_prev / max(total_now, 1) * 100), 1)
+    referral_trend     = "↑ rising" if referral_rate_now > referral_rate_prev else "↓ falling" if referral_rate_now < referral_rate_prev else "→ stable"
+
+    drug_expiry_list = ", ".join(
+        [f"{r['name']} (expires {r['expiry_date']})" for r in expiring_drugs]
+    ) or "None"
+
+    digest_data = f"""
+PHC HEALTH DATA SUMMARY — LAST {days} DAYS
+=============================================
+Total consultations : {total_now}
+Referral rate       : {referral_rate_now}% ({referral_trend} from {referral_rate_prev}% previous period)
+Recheckup patients  : {recheckup_due}
+
+TOP PRESENTING SYMPTOMS:
+{symptom_list}
+
+VILLAGE BURDEN (highest visits):
+{village_list}
+
+DRUGS EXPIRING WITHIN 30 DAYS:
+{drug_expiry_list}
+""".strip()
+
+    digest_prompt = (
+        f"You are a district health officer reviewing data for an Indian Primary Health Centre (PHC). "
+        f"Based on the following data, write a concise weekly digest for the PHC doctor. "
+        f"Structure it as: (1) Key highlights this {period}, "
+        f"(2) Any trends or concerns that need attention, "
+        f"(3) One concrete action item for the coming week. "
+        f"Be direct and clinical. Do not pad with generic statements.\n\n"
+        f"{digest_data}"
+    )
+    prompt = f"<start_of_turn>user\n{digest_prompt}<end_of_turn>\n<start_of_turn>model\n"
+
+    async def generate():
+        # First emit the raw stats as a structured header
+        yield f"data: {json.dumps({'stats': digest_data})}\n\n"
+
+        async with httpx.AsyncClient(timeout=None) as client:
+            async with client.stream(
+                "POST",
+                f"{LLAMA_SERVER}/completion",
+                json={
+                    "prompt": prompt, "n_predict": 400, "stream": True,
+                    "temperature": 0.7, "top_p": 0.9,
+                    "stop": ["<end_of_turn>"]
+                },
+            ) as response:
+                async for line in response.aiter_lines():
+                    if not line.startswith("data: ") or line.strip() == "data: [DONE]":
+                        continue
+                    try:
+                        data  = json.loads(line[6:])
+                        token = data.get("content", "").replace("<end_of_turn>", "")
+                        if token:
+                            yield f"data: {json.dumps({'token': token})}\n\n"
+                    except Exception:
+                        continue
+        yield f"data: {json.dumps({'done': True})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
