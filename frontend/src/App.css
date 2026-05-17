@@ -134,7 +134,7 @@ body {
 .chat-input-row input {
   flex: 1; font-size: 13px; border-radius: 20px;
   padding: 8px 14px; border: 0.5px solid #d0d0d0;
-  background: #f4f6f8; outline: none;
+  background: #f4f6f8; outline: none; color: #000;
 }
 .send-btn {
   width: 36px; height: 36px; border-radius: 50%;
@@ -149,7 +149,7 @@ body {
 .search-box input {
   width: 100%; font-size: 13px; padding: 9px 14px;
   border-radius: 10px; border: 0.5px solid #d0d0d0;
-  background: #f4f6f8; outline: none;
+  background: #f4f6f8; outline: none; color: #000;
 }
 .list { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px;
         max-height: calc(100vh - 200px); overflow-y: auto; }
@@ -181,7 +181,7 @@ body {
 .form input, .form select {
   width: 100%; font-size: 13px; padding: 9px 12px;
   border-radius: 8px; border: 0.5px solid #d0d0d0;
-  background: #f4f6f8; outline: none;
+  background: #f4f6f8; outline: none; color: #000;
 }
 .btn-primary {
   background: #0F6E56; color: #fff; border: none;

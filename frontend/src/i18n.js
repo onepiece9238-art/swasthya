@@ -29,7 +29,8 @@ export const translations = {
     totalPatients: "Total patients",
     consultationsToday: "Consultations today",
     referralsThisWeek: "Referrals this week",
-    drugsOutOfStock: "Drugs out of stock"
+    drugsOutOfStock: "Drugs out of stock",
+    quickChatOptions: ["Child fever 38.5°C and vomiting", "ANC checkup protocol", "ORS preparation steps", "Malaria RDT positive", "High BP 160/100 management"]
   },
   hi: {
     appName: "स्वास्थ्य सहायक",
@@ -61,7 +62,8 @@ export const translations = {
     totalPatients: "कुल मरीज़",
     consultationsToday: "आज के परामर्श",
     referralsThisWeek: "इस सप्ताह रेफरल",
-    drugsOutOfStock: "अनुपलब्ध दवाइयाँ"
+    drugsOutOfStock: "अनुपलब्ध दवाइयाँ",
+    quickChatOptions: ["बच्चे को 38.5°C बुखार और उल्टी", "ANC चेकअप प्रोटोकॉल", "ORS बनाने की विधि", "मलेरिया RDT पॉजिटिव", "हाई BP 160/100 प्रबंधन"]
   },
   kn: {
     appName: "ಸ್ವಾಸ್ಥ್ಯ ಸಹಾಯಕ",
@@ -93,7 +95,8 @@ export const translations = {
     totalPatients: "ಒಟ್ಟು ರೋಗಿಗಳು",
     consultationsToday: "ಇಂದಿನ ಸಮಾಲೋಚನೆಗಳು",
     referralsThisWeek: "ಈ ವಾರ ಉಲ್ಲೇಖಗಳು",
-    drugsOutOfStock: "ಸ್ಟಾಕ್ ಮುಗಿದ ಔಷಧಿಗಳು"
+    drugsOutOfStock: "ಸ್ಟಾಕ್ ಮುಗಿದ ಔಷಧಿಗಳು",
+    quickChatOptions: ["ಮಗುವಿಗೆ 38.5°C ಜ್ವರ ಮತ್ತು ವಾಂತಿ", "ANC ತಪಾಸಣೆ ಪ್ರೋಟೋಕಾಲ್", "ORS ತಯಾರಿಸುವ ವಿಧಾನ", "ಮಲೇರಿಯಾ RDT ಪಾಸಿಟಿವ್", "ಹೈ BP 160/100 ನಿರ್ವಹಣೆ"]
   },
   ta: {
     appName: "ஸ்வஸ்தியா சஹாயக்",
@@ -125,7 +128,8 @@ export const translations = {
     totalPatients: "மொத்த நோயாளிகள்",
     consultationsToday: "இன்றைய ஆலோசனைகள்",
     referralsThisWeek: "இந்த வாரம் பரிந்துரைகள்",
-    drugsOutOfStock: "கையிருப்பில் இல்லாத மருந்துகள்"
+    drugsOutOfStock: "கையிருப்பில் இல்லாத மருந்துகள்",
+    quickChatOptions: ["குழந்தைக்கு 38.5°C காய்ச்சல் மற்றும் வாந்தி", "ANC பரிசோதனை நெறிமுறை", "ORS தயாரிக்கும் முறை", "மலேரியா RDT பாசிட்டிவ்", "உயர் இரத்த அழுத்தம் 160/100 மேலாண்மை"]
   },
   te: {
     appName: "స్వస్థ్య సహాయక్",
@@ -157,6 +161,7 @@ export const translations = {
     totalPatients: "మొత్తం రోగులు",
     consultationsToday: "నేటి సంప్రదింపులు",
     referralsThisWeek: "ఈ వారం రిఫరల్స్",
-    drugsOutOfStock: "స్టాక్ లేని మందులు"
+    drugsOutOfStock: "స్టాక్ లేని మందులు",
+    quickChatOptions: ["పిల్లలకి 38.5°C జ్వరం మరియు వాంతులు", "ANC చెకప్ ప్రోటోకాల్", "ORS తయారీ విధానం", "మలేరియా RDT పాజిటివ్", "హై BP 160/100 నిర్వహణ"]
   }
 };

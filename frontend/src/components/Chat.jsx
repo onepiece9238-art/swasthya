@@ -94,7 +94,7 @@ export default function Chat({ lang }) {
       </div>
 
       <div className="chips">
-        {QUICK.map(q => (
+        {t.quickChatOptions && t.quickChatOptions.map(q => (
           <div key={q} className="chip" onClick={() => send(q)}>{q}</div>
         ))}
       </div>

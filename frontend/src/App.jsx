@@ -3,6 +3,7 @@ import Chat     from "./components/Chat";
 import Drugs    from "./components/Drugs";
 import Patients from "./components/Patients";
 import Stats    from "./components/Stats";
+import Landing  from "./components/Landing";
 import { translations } from "./i18n";
 import "./App.css";
 
@@ -14,6 +15,7 @@ export default function App() {
   const [tab,  setTab]  = useState("chat");
   const [lang, setLang] = useState("en");
   const [showLang, setShowLang] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
   const t = translations[lang] || translations.en;
 
   const tabs = [
@@ -22,6 +24,10 @@ export default function App() {
     { id: "patients", icon: "ti-users",        label: t.tabPatients },
     { id: "stats",    icon: "ti-chart-bar",    label: t.tabStats },
   ];
+
+  if (showLanding) {
+    return <Landing onEnter={() => setShowLanding(false)} />;
+  }
 
   return (
     <div className="app">
